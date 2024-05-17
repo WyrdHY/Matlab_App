@@ -1,0 +1,181 @@
+%% 
+%This code is used for analyzing the data obtained
+%from the purrcell_continuous
+%You need to specify the file path, and put all files into the same folder
+
+
+
+%nature = nan(1,800);
+normalizer = 0;
+begin = 30;
+iteration=60;
+for i = begin:iteration 
+    %load the data
+    filename = sprintf('C:\\Users\\Dirk\\Desktop\\purcell\\05132024\\fourth_fuck\\fourthfuck_%d.mat', i);
+    data = load(filename);
+    % initialize
+    t = data.data.Time;
+    gate = data.data.Dev1_ai0;
+    cts = data.data.Dev1_ctr2 ;
+    %%
+    %{
+    % plot all of them
+    plot(t,gate);
+    hold on;
+    plot(t,cts);
+    
+    figure;
+    yyaxis left;
+    plot(t,gate);
+    ylabel('voltage'); 
+    yyaxis right;
+    plot(t,cts); 
+    ylabel('counts'); 
+    xlabel('time'); 
+    title('test'); 
+    %%
+    
+    % plot part of them
+    
+    xi = 1;
+    xf = 63000;
+    %(xi:xf)
+    
+    figure;
+    yyaxis left;
+    scatter(t(xi:xf),gate(xi:xf));
+    ylabel('voltage'); 
+    yyaxis right;
+    scatter(t(xi:xf),cts(xi:xf));
+    ylabel('counts'); 
+    xlabel('time'); 
+    title('test'); 
+    %%
+    %try to bin each 10 of them only within one segment
+    test_t = t(5000:13000-1);
+    test_cts = cts(5000:13000-1);
+    %%
+    %for each round, this is how we treat the data
+    matrix = reshape(test_cts, 10, []);
+    temp_matrix = matrix([1,10],:);
+    diffmatrix = diff(temp_matrix);
+    figure;
+    scatter((1:800)*8e-6,diffmatrix)
+    %%
+    %for each round, this is how we tell the beginning of each round
+    
+    test_t2 = t(1:63000);
+    test_a2 = gate(1:63000);
+    flag = find(diff(test_a2)>2) + 1;
+    
+    figure;
+    plot(t,gate);
+    hold on; 
+    scatter(flag*8e-7,3);
+    %plot([5000*8e-7,13000*8e-7],[2,2])
+    
+    %%
+    % combine the efforts for previous two parts 
+    % and perform action on this segment
+    
+    test_t = t(xi:xf);
+    test_cts = cts(xi:xf);
+    test_gate = gate(xi:xf);
+    
+    test_flag=flagfinder(test_gate);
+    test_decay = generator(test_flag,test_cts);
+    
+    
+    
+    %plot the sum of the test_decay
+    paper = sum(test_decay);
+    
+    dt = 8e-6;%s
+    figure
+    plot((1:length(paper))*dt,paper)
+    %}
+    %%
+    %this looks good, now let's deal with the true data
+    
+    real_flag=flagfinder(gate);
+    normalizer = normalizer + length(real_flag);
+    real_decay = generator(real_flag,cts);
+    %plot the sum of the test_decay
+    if i ==begin
+        bitch = sum(real_decay);
+    else
+        bitch = [bitch;sum(real_decay)];
+    end
+    disp(i);
+end
+
+%%
+figure;
+%rows=[1,2,4,6,7,14,16,20,21];
+john = sum(bitch);
+dt = 8e-6;%s
+%plot the result
+subplot(2,1,1)
+plot((1:length(john))*dt,john)
+xlabel('time (s)'); % Label x-axis
+ylabel('counts'); % Label y-axis
+ylim([0 300]);
+title(sprintf('from %d to %d',begin,iteration))
+subplot(2,1,2)
+scatter((1:length(john))*dt,john,0.5)
+xlabel('time (s)'); % Label x-axis
+ylabel('counts'); % Label y-axis
+title(sprintf("sum over %d on/off by chopper. Total acquire time = %d mins",normalizer,iteration-begin)); % Title of the plot
+%ylim([100 200]);
+
+
+%%
+twitch = 1; %change this to 1 if you want to save it
+if twitch == 1
+    filename = sprintf('decay_pattern_%d_%d.fig', begin, iteration);
+    folder = 'C:\Users\Dirk\Desktop\purcell\05132024\4th_analysis\';
+    saveas(gcf, [folder filename]);
+    disp(sprintf('Saved! %s', [folder filename]));
+end
+%{
+filename = sprintf('decay_pattern_%d_%d.fig', begin, iteration);
+folder = 'C:\Users\Dirk\Desktop\purcell\05132024\4th_analysis\';
+saveas(gcf, [folder filename]);
+%}
+
+
+
+
+function result = flagfinder(target)
+    %%%
+    % input: trigger signal
+    % output: array of index when the gate is on
+    %for each round, 
+    %this is how we tell the beginning of each round
+    %%%
+    flagfrinder = diff(target);
+    result = find(flagfrinder>3) + 1;
+end
+
+
+%-780,+7319
+function results = generator(flag,cts)
+    results = zeros(length(flag), 800); %800 is the size of my diffmatrix
+    for i = 1:length(flag)%-762,+7238
+        ti = flag(i)-762;
+        tf = flag(i) + 7238-1;
+        if tf > 75000000 || ti < 0 % Check both conditions in one line
+            continue; % Skip this iteration and move to the next
+        end
+        matrix = reshape(cts(ti:tf), 10, []);
+        temp_matrix = matrix([1,10],:);
+        results(i,:) = diff(temp_matrix);
+    end
+end
+
+
+
+
+
+
+

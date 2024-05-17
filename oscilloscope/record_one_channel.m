@@ -25,6 +25,6 @@ end
 
 timestamp = datestr(now, 'yyyymmdd_HHMMSS');
 
-filename = sprintf('%s\\chi_%s.mat', fullPath, timestamp);
+filename = sprintf('%s\\chi_%s2G.mat', fullPath, timestamp);
 
 save(filename, 'i');
